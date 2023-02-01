@@ -1,37 +1,42 @@
 //jshint esversion:6
-require('dotenv').config()
-const express = require('express')
-const bodyParser = require('body-parser')
-const ejs = require('ejs')
-const mongoose = require('mongoose')
-const session = require('express-session')
-const passport = require('passport')
-const passportLocalMongoose = require('passport-local-mongoose')
+require('dotenv').config();
+const express = require("express");
+const bodyParser = require("body-parser");
+const ejs = require("ejs");
+const mongoose = require("mongoose");
+const session = require('express-session');
+const passport = require("passport");
+const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const findOrCreate = require('mongoose-findorcreate')
-const app = express()
+const findOrCreate = require('mongoose-findorcreate');
 
-app.use(express.static('public'))
-app.set('view engine', 'ejs')
+const app = express();
+
+
+app.use(express.static("public"));
+app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({
   extended: true
 }));
+
 app.use(session({
-  secret: 'our little secret.',
+  secret: "Our little secret.",
   resave: false,
   saveUninitialized: false
-}))
-app.use(passport.initialize())
-app.use(passport.session())
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
 // --------------------Mongoose connection
 try {
-  mongoose.connect('mongodb://localhost:27017/userDB', {
-    useNewUrlParser: true
-  })
+  mongoose.connect("mongodb://localhost:27017/userDB", {useNewUrlParser: true});
+  mongoose.set("useCreateIndex", true);
   console.log(('Mongodb connected'));
 } catch {
-  console.log(error);
+  // console.log(error);
 }
+
 // --------------------------userSchema
 const userSchema = new mongoose.Schema ({
   email: String,
@@ -39,13 +44,15 @@ const userSchema = new mongoose.Schema ({
   googleId: String,
   secret: String
 });
+
 userSchema.plugin(passportLocalMongoose)
 userSchema.plugin(findOrCreate)
 
 //userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ['password']})
 
 // ----------------------Passport
-const User = new mongoose.model('User', userSchema)
+const User = new mongoose.model("User", userSchema);
+
 passport.use(User.createStrategy());
 
 // use static serialize and deserialize of model for passport session support
@@ -60,12 +67,12 @@ passport.deserializeUser(function(id, done) {
 });
 
 passport.use(new GoogleStrategy({
-    clientID: process.env.CLIENT_ID,
-    clientSecret: process.env.CLIENT_SECRET,
-    callbackURL: "https://localhost:3000/auth/google/secrets",
-    userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
-  },
-  function(accessToken, refreshToken, profile, cb) {
+  clientID: process.env.CLIENT_ID,
+  clientSecret: process.env.CLIENT_SECRET,
+  callbackURL: "http://localhost:3000/auth/google/secrets",
+  userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
+},
+function(accessToken, refreshToken, profile, cb) {
   console.log(profile);
 
   User.findOrCreate({ googleId: profile.id }, function (err, user) {
